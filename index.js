@@ -75,3 +75,47 @@ app.post("/chat", async (req, res) => {
 // Use the environment port (Railway, Render, etc.)
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`🚀 TurboWarp AI Bridge Running on port ${port}`));
+// index.js
+import express from "express";
+import OpenAI from "openai";
+
+// Initialize Express
+const app = express();
+
+// Parse JSON
+app.use(express.json());
+
+// Make sure your OpenAI API key is read from the environment
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// Example route your Scratch/TurboWarp can call
+app.get("/ping", (req, res) => {
+  res.json({ message: "Bridge is alive!" });
+});
+
+// Example route for your bridge functionality
+app.post("/chat", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+
+    if (!prompt) return res.status(400).json({ error: "No prompt provided" });
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }]
+    });
+
+    res.json({ reply: response.choices[0].message.content });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+// ✅ Key part: Listen on the Railway-assigned port
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Bridge running on port ${port}`);
+});
