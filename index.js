@@ -9,7 +9,7 @@ app.use(express.json());
 
 // Make sure to set your OpenAI API key in Railway or environment variables
 const openai = new OpenAI({
-  apiKey: process.env.sk-...JNgA
+  apiKey: process.env.OPENAI_API_KEY
 });
 
 // In-memory session memory
