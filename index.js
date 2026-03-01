@@ -1,38 +1,30 @@
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch";
+import OpenAI from "openai";
 
 const app = express();
 app.use(cors());
 
-// This creates the "/ask" room that TurboWarp is looking for
-app.get("/ask", async (req, res) => {
-  const userMessage = req.query.q;
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
-  if (!userMessage) return res.json({ reply: "Say something!" });
+app.get("/ask", async (req, res) => {
+  const q = req.query.q;
+  if (!q) return res.json({ reply: "Ask me something!" });
 
   try {
-    const response = await fetch("https://api.openai.com", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: userMessage }]
-      })
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: q }],
     });
 
-    const data = await response.json();
-    
-    // This sends the AI's answer back as a clean JSON package
-    res.json({ reply: data.choices[0].message.content });
+    // We need choices[0] to get the first answer!
+    res.json({ reply: completion.choices[0].message.content });
   } catch (error) {
-    res.json({ reply: "Server Error: " + error.message });
+    res.json({ reply: "Error: " + error.message });
   }
 });
 
-// Use Railway's port or default to 8080
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`🚀 Bridge Online on Port ${PORT}`));
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`🚀 Bridge Online on ${port}`));
