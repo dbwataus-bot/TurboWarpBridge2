@@ -1,30 +1,37 @@
 import express from "express";
 import cors from "cors";
-import OpenAI from "openai";
+import fetch from "node-fetch";
 
 const app = express();
 app.use(cors());
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
+// This creates the "/ask" door TurboWarp is knocking on
 app.get("/ask", async (req, res) => {
-  const q = req.query.q;
-  if (!q) return res.json({ reply: "Ask me something!" });
+  const userMessage = req.query.q;
+
+  if (!userMessage) return res.json({ reply: "Ask me something!" });
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: q }],
+    const response = await fetch("https://api.openai.com", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: userMessage }]
+      })
     });
 
-    // We need choices[0] to get the first answer!
-    res.json({ reply: completion.choices[0].message.content });
+    const data = await response.json();
+    
+    // This sends the AI's answer back to your "reply of response" block
+    res.json({ reply: data.choices[0].message.content });
   } catch (error) {
-    res.json({ reply: "Error: " + error.message });
+    res.json({ reply: "Server Error: " + error.message });
   }
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`🚀 Bridge Online on ${port}`));
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`🚀 Bridge Online`));
