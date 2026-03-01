@@ -26,7 +26,9 @@ app.get("/ask", async (req, res) => {
 
     const data = await response.json();
     
-    // This sends the AI's answer back to your "reply of response" block
+    // Check for OpenAI specific errors
+    if (data.error) return res.json({ reply: "OpenAI Error: " + data.error.message });
+
     res.json({ reply: data.choices[0].message.content });
   } catch (error) {
     res.json({ reply: "Server Error: " + error.message });
@@ -34,4 +36,4 @@ app.get("/ask", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`🚀 Bridge Online`));
+app.listen(PORT, () => console.log(`🚀 Bridge Online on Port ${PORT}`));
