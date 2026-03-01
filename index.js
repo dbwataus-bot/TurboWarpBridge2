@@ -1,124 +1,3 @@
-// index.js
-import express from "express";
-import cors from "cors";
-import OpenAI from "openai";
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Make sure to set your OpenAI API key in Railway or environment variables
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY 
-});
-
-// In-memory session memory
-const conversations = {};
-
-// POST endpoint for TurboWarp to send messages
-app.post("/chat", async (req, res) => {
-  const { message, sessionId } = req.body;
-
-  if (!message || !sessionId) {
-    return res.status(400).json({ error: "Missing message or sessionId" });
-  }
-
-  // Initialize conversation memory for this session
-  if (!conversations[sessionId]) {
-    conversations[sessionId] = [
-      {
-        role: "system",
-        content: "You are Nova, a fast, playful AI inside a Scratch/TurboWarp project."
-      }
-    ];
-  }
-
-  // Add user message
-  conversations[sessionId].push({ role: "user", content: message });
-
-  try {
-    // Create chat completion
-    const stream = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: conversations[sessionId],
-      max_tokens: 150,
-      temperature: 0.7,
-      stream: true
-    });
-
-    res.setHeader("Content-Type", "text/plain");
-
-    let fullReply = "";
-
-    // Stream the response
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content;
-      if (content) {
-        fullReply += content;
-        res.write(content);
-      }
-    }
-
-    // Save AI response to conversation
-    conversations[sessionId].push({
-      role: "assistant",
-      content: fullReply
-    });
-
-    res.end();
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to get AI response" });
-  }
-});
-
-// Use the environment port (Railway, Render, etc.)
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`🚀 TurboWarp AI Bridge Running on port ${port}`));
-// index.js
-import express from "express";
-import OpenAI from "openai";
-
-// Initialize Express
-const app = express();
-
-// Parse JSON
-app.use(express.json());
-
-// Make sure your OpenAI API key is read from the environment
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
-// Example route your Scratch/TurboWarp can call
-app.get("/ping", (req, res) => {
-  res.json({ message: "Bridge is alive!" });
-});
-
-// Example route for your bridge functionality
-app.post("/chat", async (req, res) => {
-  try {
-    const { prompt } = req.body;
-
-    if (!prompt) return res.status(400).json({ error: "No prompt provided" });
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }]
-    });
-
-    res.json({ reply: response.choices[0].message.content });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Something went wrong" });
-  }
-});
-
-// ✅ Key part: Listen on the Railway-assigned port
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Bridge running on port ${port}`);
-});
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
@@ -126,9 +5,13 @@ import fetch from "node-fetch";
 const app = express();
 app.use(cors());
 
-// This matches the "GET" block in TurboWarp
+// This is the "door" TurboWarp is knocking on (/ask)
 app.get("/ask", async (req, res) => {
-  const userMessage = req.query.q; // This grabs the text after "?q="
+  const userMessage = req.query.q; // This grabs your 'answer' from the URL
+
+  if (!userMessage) {
+    return res.json({ reply: "Ask me something!" });
+  }
 
   try {
     const response = await fetch("https://api.openai.com", {
@@ -145,12 +28,19 @@ app.get("/ask", async (req, res) => {
 
     const data = await response.json();
     
-    // Send just the AI's reply back to TurboWarp
+    // Check if OpenAI sent an error
+    if (data.error) {
+      return res.json({ reply: "OpenAI Error: " + data.error.message });
+    }
+
+    // Send the AI's reply back to TurboWarp
     res.json({ reply: data.choices[0].message.content });
   } catch (error) {
+    console.error(error);
     res.json({ reply: "Server Error: " + error.message });
   }
 });
 
+// Railway will tell the server which port to use
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`🚀 Bridge Online on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 AI Bridge Online on port ${PORT}`));
