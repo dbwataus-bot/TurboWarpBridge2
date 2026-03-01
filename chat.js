@@ -4,7 +4,7 @@
 
 const fetch = require("node-fetch");
 
-const API_URL = "https://YOUR-RAILWAY-URL.up.railway.app/chat"; 
+const API_URL = "https://turbowarpbridge2-production.up.railway.app" 
 // 🔁 Replace with your real Railway URL
 
 let conversationHistory = [];
