@@ -5,11 +5,10 @@ import fetch from "node-fetch";
 const app = express();
 app.use(cors());
 
-// This creates the "/ask" door TurboWarp is knocking on
+// This is the "/ask" door your TurboWarp blocks are looking for
 app.get("/ask", async (req, res) => {
-  const userMessage = req.query.q;
-
-  if (!userMessage) return res.json({ reply: "Ask me something!" });
+  const q = req.query.q;
+  if (!q) return res.json({ reply: "Ask me something!" });
 
   try {
     const response = await fetch("https://api.openai.com", {
@@ -20,20 +19,16 @@ app.get("/ask", async (req, res) => {
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
-        messages: [{ role: "user", content: userMessage }]
+        messages: [{ role: "user", content: q }]
       })
     });
 
     const data = await response.json();
-    
-    // Check for OpenAI specific errors
-    if (data.error) return res.json({ reply: "OpenAI Error: " + data.error.message });
-
     res.json({ reply: data.choices[0].message.content });
-  } catch (error) {
-    res.json({ reply: "Server Error: " + error.message });
+  } catch (err) {
+    res.json({ reply: "Error: " + err.message });
   }
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`🚀 Bridge Online on Port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Bridge Online on ${PORT}`));
