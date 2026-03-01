@@ -5,7 +5,7 @@ import fetch from "node-fetch";
 const app = express();
 app.use(cors());
 
-// This is the "/ask" door your TurboWarp blocks are looking for
+// This creates the "/ask" door your TurboWarp blocks are knocking on
 app.get("/ask", async (req, res) => {
   const q = req.query.q;
   if (!q) return res.json({ reply: "Ask me something!" });
