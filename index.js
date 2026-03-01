@@ -119,3 +119,38 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Bridge running on port ${port}`);
 });
+import express from "express";
+import cors from "cors";
+import fetch from "node-fetch";
+
+const app = express();
+app.use(cors());
+
+// This matches the "GET" block in TurboWarp
+app.get("/ask", async (req, res) => {
+  const userMessage = req.query.q; // This grabs the text after "?q="
+
+  try {
+    const response = await fetch("https://api.openai.com", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: userMessage }]
+      })
+    });
+
+    const data = await response.json();
+    
+    // Send just the AI's reply back to TurboWarp
+    res.json({ reply: data.choices[0].message.content });
+  } catch (error) {
+    res.json({ reply: "Server Error: " + error.message });
+  }
+});
+
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`🚀 Bridge Online on port ${PORT}`));
